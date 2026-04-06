@@ -287,7 +287,8 @@ async function signIn() {
     return;
   }
   try {
-    const result = await msalInstance.loginPopup(loginRequest);
+    await msalInstance.loginRedirect(loginRequest);
+return;
     currentAccount = result.account;
     accessToken = result.accessToken;
     updateAuthUI(true);
@@ -301,7 +302,7 @@ async function signIn() {
 async function signOut() {
   if (!msalInstance || !currentAccount) return;
   try {
-    await msalInstance.logoutPopup({ account: currentAccount });
+    await msalInstance.logoutRedirect({ account: currentAccount });
     currentAccount = null; accessToken = null;
     updateAuthUI(false);
     showToast('👋 Sesión cerrada','info');
@@ -316,9 +317,8 @@ async function refreshToken() {
     return true;
   } catch(e) {
     try {
-      const result = await msalInstance.acquireTokenPopup({ ...loginRequest, account: currentAccount });
-      accessToken = result.accessToken;
-      return true;
+      await msalInstance.acquireTokenRedirect({ ...loginRequest, account: currentAccount });
+return false;
     } catch(e2) { return false; }
   }
 }
