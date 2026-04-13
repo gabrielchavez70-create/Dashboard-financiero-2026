@@ -327,9 +327,14 @@ async function refreshToken() {
     return true;
   } catch(e) {
     try {
-      const result = await msalInstance.acquireTokenPopup({ ...loginRequest, account: currentAccount });
-      accessToken = result.accessToken;
-      return true;
+      if (isMobile) {
+        await msalInstance.acquireTokenRedirect({ ...loginRequest, account: currentAccount });
+        return false; // redirect will reload the page
+      } else {
+        const result = await msalInstance.acquireTokenPopup({ ...loginRequest, account: currentAccount });
+        accessToken = result.accessToken;
+        return true;
+      }
     } catch(e2) { return false; }
   }
 }
