@@ -265,16 +265,26 @@ function saveLocal() {
 async function initAuth() {
   if (!msalInstance) return;
   try {
-    await msalInstance.handleRedirectPromise();
+    // Capturar resultado del redirect (crítico para móvil)
+    const redirectResult = await msalInstance.handleRedirectPromise();
+    if (redirectResult) {
+      currentAccount = redirectResult.account;
+      accessToken = redirectResult.accessToken;
+      updateAuthUI(true);
+      await syncFromCloud();
+      showToast('✅ Conectado como ' + currentAccount.name, 'success');
+      return;
+    }
+    // Login silencioso si ya hay cuenta guardada
     const accounts = msalInstance.getAllAccounts();
     if (accounts.length > 0) {
       currentAccount = accounts[0];
-      await refreshToken();
+      const silentResult = await msalInstance.acquireTokenSilent({ ...loginRequest, account: currentAccount });
+      accessToken = silentResult.accessToken;
       updateAuthUI(true);
       await syncFromCloud();
     } else {
       updateAuthUI(false);
-      // Show modal on first visit
       if (!localStorage.getItem('dismissedModal')) showModal();
     }
   } catch(e) { console.warn('Auth init:', e); updateAuthUI(false); }
