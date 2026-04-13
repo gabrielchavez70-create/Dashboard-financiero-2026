@@ -280,6 +280,8 @@ async function initAuth() {
   } catch(e) { console.warn('Auth init:', e); updateAuthUI(false); }
 }
 
+const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
 async function signIn() {
   if (!msalInstance) { showToast('⚠️ Configura tu Client ID de Azure AD en el HTML','error'); return; }
   if (AZURE_CLIENT_ID === 'TU_CLIENT_ID_AQUI') {
@@ -287,12 +289,17 @@ async function signIn() {
     return;
   }
   try {
-    const result = await msalInstance.loginPopup(loginRequest);
-    currentAccount = result.account;
-    accessToken = result.accessToken;
-    updateAuthUI(true);
-    await syncFromCloud();
-    showToast('✅ Conectado como '+currentAccount.name,'success');
+    if (isMobile) {
+      // Safari/móvil: usar redirect en lugar de popup
+      await msalInstance.loginRedirect(loginRequest);
+    } else {
+      const result = await msalInstance.loginPopup(loginRequest);
+      currentAccount = result.account;
+      accessToken = result.accessToken;
+      updateAuthUI(true);
+      await syncFromCloud();
+      showToast('✅ Conectado como '+currentAccount.name,'success');
+    }
   } catch(e) {
     if (e.errorCode !== 'user_cancelled') showToast('❌ Error de autenticación: '+e.message,'error');
   }
@@ -301,10 +308,14 @@ async function signIn() {
 async function signOut() {
   if (!msalInstance || !currentAccount) return;
   try {
-    await msalInstance.logoutPopup({ account: currentAccount });
-    currentAccount = null; accessToken = null;
-    updateAuthUI(false);
-    showToast('👋 Sesión cerrada','info');
+    if (isMobile) {
+      await msalInstance.logoutRedirect({ account: currentAccount });
+    } else {
+      await msalInstance.logoutPopup({ account: currentAccount });
+      currentAccount = null; accessToken = null;
+      updateAuthUI(false);
+      showToast('👋 Sesión cerrada','info');
+    }
   } catch(e) {}
 }
 
